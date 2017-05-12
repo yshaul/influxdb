@@ -1436,7 +1436,41 @@ func TestParser_ParseStatement(t *testing.T) {
 				Location: LosAngeles,
 			},
 		},
+		{
+			s: `SELECT * FROM mydb WHERE service IN (aa, bb)`,
+			stmt: &influxql.SelectStatement{
+				IsRawQuery: true,
+				Fields:     []*influxql.Field{{Expr: &influxql.Wildcard{}}},
+				Sources:    []influxql.Source{&influxql.Measurement{Name: "mydb"}},
 
+				Condition: &influxql.BinaryExpr{
+					Op:  influxql.IN,
+					LHS: &influxql.VarRef{Val: "service"},
+					RHS: &influxql.ListLiteral{Vals: []string{"aa", "bb"}},
+				},
+			},
+		},
+		{
+			s: `SELECT * FROM mydb WHERE service IN (aa, bb) AND time >= now()`,
+			stmt: &influxql.SelectStatement{
+				IsRawQuery: true,
+				Fields:     []*influxql.Field{{Expr: &influxql.Wildcard{}}},
+				Sources:    []influxql.Source{&influxql.Measurement{Name: "mydb"}},
+				Condition: &influxql.BinaryExpr{
+					Op: influxql.AND,
+					LHS: &influxql.BinaryExpr{
+						Op:  influxql.IN,
+						LHS: &influxql.VarRef{Val: "service"},
+						RHS: &influxql.ListLiteral{Vals: []string{"aa", "bb"}},
+					},
+					RHS: &influxql.BinaryExpr{
+						Op:  influxql.GTE,
+						LHS: &influxql.VarRef{Val: "time"},
+						RHS: &influxql.Call{Name: "now"},
+					},
+				},
+			},
+		},
 		// See issues https://github.com/influxdata/influxdb/issues/1647
 		// and https://github.com/influxdata/influxdb/issues/4404
 		// DELETE statement

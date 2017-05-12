@@ -2434,6 +2434,7 @@ func (p *Parser) ParseExpr() (Expr, error) {
 	for {
 		// If the next token is NOT an operator then return the expression.
 		op, _, _ := p.scanIgnoreWhitespace()
+
 		if !op.isOperator() {
 			p.unscan()
 			return root.RHS, nil
@@ -2452,6 +2453,26 @@ func (p *Parser) ParseExpr() (Expr, error) {
 				tok, pos, lit := p.scanIgnoreWhitespace()
 				return nil, newParseError(tokstr(tok, lit), []string{"regex"}, pos)
 			}
+		} else if op == IN {
+			// Parse required ( token.
+			if tok, pos, lit := p.scanIgnoreWhitespace(); tok != LPAREN {
+				return nil, newParseError(tokstr(tok, lit), []string{"("}, pos)
+			}
+
+			// Parse ident list.
+			var tokens []string
+			if tokens, err = p.parseIdentList(); err != nil {
+				return nil, err
+			}
+
+			// Parse required ) token.
+			if tok, pos, lit := p.scanIgnoreWhitespace(); tok != RPAREN {
+				return nil, newParseError(tokstr(tok, lit), []string{")"}, pos)
+			}
+
+			root.RHS = &BinaryExpr{LHS: root.RHS, RHS: &ListLiteral{Vals: tokens}, Op: op}
+
+			continue
 		} else {
 			if rhs, err = p.parseUnaryExpr(); err != nil {
 				return nil, err
@@ -2472,6 +2493,8 @@ func (p *Parser) ParseExpr() (Expr, error) {
 			node = r
 		}
 	}
+
+	return root, nil
 }
 
 // parseUnaryExpr parses an non-binary expression.

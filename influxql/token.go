@@ -295,12 +295,14 @@ func (tok Token) Precedence() int {
 		return 4
 	case MUL, DIV, MOD, BITWISE_AND:
 		return 5
+	case IN:
+		return 6
 	}
 	return 0
 }
 
 // isOperator returns true for operator tokens.
-func (tok Token) isOperator() bool { return tok > operatorBeg && tok < operatorEnd }
+func (tok Token) isOperator() bool { return (tok > operatorBeg && tok < operatorEnd) || tok == IN }
 
 // tokstr returns a literal if provided, otherwise returns the token string.
 func tokstr(tok Token, lit string) string {
